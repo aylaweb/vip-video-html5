@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+    <head>
+
+        <meta charset="UTF-8">
+        <title>Video html5</title>
+
+
+        <script src="../../webcomponentsjs/webcomponents-lite.min.js"></script>
+        <link rel="import" href="../../polymer/polymer.html">
+        <link rel="import" href="../vip-video-html5.html">
+        <style>
+            #video{
+                flex: 1 1 0;
+                position: relative;
+
+            }
+        </style>
+    </head>
+    <body fullbleed style="height:100vh; width:100vw; display: flex; flex-flow:row wrap; align-content: flex-start;">
+
+    <vip-video-html5 start-time="5" end-time="30" id="video" autoplay sources='[{"src": "http://localhost/Vipsion/public/ayla/media/joomla.mp4","type": "video/mp4"}]'>
+    </vip-video-html5>
+    <script>
+        var vhtml5 = document.querySelector('#video');
+        /* vhtml5.sources = [
+         {"src": "http://media.w3.org/2010/05/sintel/trailer.mp4",
+         "type": "video/mp4"
+         }]; */
+        /*   vhtml5.addEventListener("canplay", function ()
+         {
+         vhtml5.play();
+         });*/
+    </script>
+</body>
+</html>
