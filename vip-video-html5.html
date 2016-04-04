@@ -11,10 +11,10 @@ The complete set of contributors may be found at http://aylaweb.github.io/CONTRI
 <link rel="import" href="../iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="../paper-styles/paper-styles.html">
 <link rel="import" href="../paper-material/paper-material.html">
-<link rel="import" href="../vip-resize-sensor/vip-resize-sensor-behavior.html">
+<link rel="import" href="../vip-resize-sensor-behavior/vip-resize-sensor-behavior.html">
 <link rel="import" href="../vip-seektime-behavior/vip-seektime-behavior.html">
 <link rel="import" href="../vip-onoff-behavior/vip-onoff-behavior.html">
-<link rel="import" href="../vip-anima-bheavior/vip-anima-behavior.html">
+<link rel="import" href="../vip-anima-behavior/vip-anima-behavior.html">
 <link rel="import" href="./animations/draw-video-animation.html">
 <link rel="import" href="../vip-animations/timeline-animation.html">
 
@@ -296,7 +296,7 @@ The complete set of contributors may be found at http://aylaweb.github.io/CONTRI
                  notify: true
                  } */
             },
-            behaviors: [Ayla.VipAnimaBehavior, Ayla.VipResizeSensor,
+            behaviors: [Ayla.VipAnimaBehavior, Ayla.VipResizeSensorBehavior,
                 Ayla.VipSeekTimeBehavior, Ayla.VipOnOffBehavior],
             listeners: {
                 'resize': '_resizeHandler'
