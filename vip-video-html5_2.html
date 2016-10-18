@@ -34,6 +34,7 @@ The complete set of contributors may be found at http://aylaweb.github.io/CONTRI
         }
 
         #paper_material{
+            position: relative;
             @apply(--layout-fit);
         }
 
@@ -45,11 +46,11 @@ The complete set of contributors may be found at http://aylaweb.github.io/CONTRI
 
     </style>
     <template id="template_videohtml5">
-        <array-selector id="videoSelector" items="{{videos}}" selected="{{videoSelected}}"></array-selector>
         <div id="container">
             <paper-material id="paper_material" elevation = 3>
                 <div id="container_video">
-                    <video id$="{{videoSelected.videoId}}" hidden controls$="{{controls}}"
+                    <video id$="video_{{video.videoId}}" controls$="{{controls}}"
+                           hidden
                            poster$="{{poster}}" loop$="{{loop}}"
                            muted$="{{muted}}"
                            autoplay$="{{autoplay}}" preload="auto"
@@ -64,7 +65,7 @@ The complete set of contributors may be found at http://aylaweb.github.io/CONTRI
                            on-stalled="_onstalledHandler"
                            on-durationchange="_ondurationchangeHandler"
                            on-volumechange="_onvolumechangeHandler">
-                           <template is="dom-repeat" items="{{videoSelected.sources}}" as="source">
+                           <template is="dom-repeat" items="{{video.sources}}" as="source">
                             <source src="{{source.src}}" type="{{source.type}}">
                         </template>
                     </video>
@@ -78,11 +79,6 @@ The complete set of contributors may be found at http://aylaweb.github.io/CONTRI
         Polymer({
             is: 'vip-video-html5',
             properties: {
-                selectedId: {
-                    type: String,
-                    value: "",
-                    observer: '_selectedIdChanged'
-                },
                 ended: {
                     type: Boolean,
                     notify: true,
@@ -113,7 +109,7 @@ The complete set of contributors may be found at http://aylaweb.github.io/CONTRI
                 paused: {
                     type: Boolean,
                     notify: true
-                            //      value: true
+                            // value: true
                 },
                 /**
                  * State property. Shows whether the player is muted
@@ -281,30 +277,18 @@ The complete set of contributors may be found at http://aylaweb.github.io/CONTRI
                     type: Number,
                     value: 0
                 },
-                videos: {
-                    type: Array,
+                video: {
+                    type: Object,
                     notify: true,
-                    observer: '_videosInitChanged'
-                },
-                /**
-                 * Config Property
-                 * Specifies the URL of the video file
-                 *
-                 * @attribute src
-                 * @type string
-                 * @default ''
-                 */
-                onOffControl: {
-                    type: String,
-                    notify: true
+                    observer: '_videoInitChanged'
                 }
+
             },
-            behaviors: [Ayla.VipAnimaBehavior, Ayla.VipResizeSensorBehavior,
+            behaviors: [Ayla.VipResizeSensorBehavior,
                 Ayla.VipSeekTimeBehavior, Ayla.VipOnOffBehavior],
             listeners: {
                 'resize': '_resizeHandler'
             },
-            observers: ['_videosChanged(videos.*)'],
             // DOM video object
 
             // Web animations player object
@@ -314,61 +298,15 @@ The complete set of contributors may be found at http://aylaweb.github.io/CONTRI
             // Filter for canvas
             // filter: null,
             // Polymer element lifecycle
-            videoItem: function (change, index, path) {
-                // this.get(path, root) returns a value for a path
-                // relative to a root object.
-                return this.get(path, change.base[index]);
-            },
-            _selectedIdChanged: function (val, old) {
-                var videoIndex = _.findIndex(this.videos, function (videoSelect) {
-                    return (val === videoSelect.videoId);
-                }.bind(this));
-                if (videoIndex >= 0) {
-                    this.$.videoSelector.index = videoIndex;
-                    this.$.videoSelector.select(this.videos[videoIndex]);
-                    Polymer.dom.flush();
-                    this._media = Polymer.dom(this.root).querySelector('video');
-                    this.load();
-                }
-            },
-            _videosInitChanged: function (val, old) {
-                if (val.length > 0) {
-                    var videoIndex = _.findIndex(val, function (videoConfig) {
-                        return (videoConfig.videoId === this.selectedId)
-                    }.bind(this));
-                }
-                if (videoIndex >= 0) {
-                    this.$.videoSelector.select(this.videos[videoIndex]);
-                    this.$.videoSelector.index = videoIndex;
-                    this._media = Polymer.dom(this.root).querySelector('video');
-                    this.load();
-                    //   Polymer.dom.flush();
-                    //   this._media = Polymer.dom(this.root).querySelector('#' + this.$.videoSelector.selected.videoId);
-                }
-            },
-            _videosChanged: function (changeRecord) {
-                if (changeRecord) {
-                    if (!this.$.videoSelector.selected || (this.$.videoSelector.selected.videoId !== this.selectedId))
-                    {
-                        var videoIndex = _.findIndex(this.videos, function (videoSelect) {
-                            return (videoSelect.videoId === this.selectedId);
-                        }.bind(this));
-                        if (videoIndex >= 0) {
-                            this.$.videoSelector.index = videoIndex;
-                            this.$.videoSelector.select(this.videos[videoIndex]);
-                            this._media = Polymer.dom(this.root).querySelector('video');
-                            this.load();
-                        }
-                    }
-                    if (!this.$.videoSelector.selected)
-                        this.$.videoSelector.select(this.videos[0]);
-                    //    this._media = Polymer.dom(this.root).querySelector('#' + this.$.videoSelector.selected.videoId);
-                }
+
+            _videoInitChanged: function (val, old) {
+                this.load();
+                //   Polymer.dom.flush();
+                //   this._media = Polymer.dom(this.root).querySelector('#' + this.$.videoSelector.selected.videoId);              
             },
             created: function () {
                 console.log(this.id + " -> vip-video-html5 -> Event created");
                 this._media = null;
-                this._alreadyAnima = false;
                 this.canvasX = 0;
                 this.canvasY = 0;
             },
@@ -378,6 +316,8 @@ The complete set of contributors may be found at http://aylaweb.github.io/CONTRI
             },
             ready: function () {
                 console.log(this.id + " -> vip-video-html5 -> Event ready");
+                //Animations from anima behaviors
+                this.animations = this.animations || {};
                 this.paused = true;
                 this.currentTimeNotify = 0;
                 this.ctx = this.$.canvas.getContext("2d");
@@ -385,6 +325,7 @@ The complete set of contributors may be found at http://aylaweb.github.io/CONTRI
                 this.async(this._createAnimation.bind(this));
             },
             _createAnimation: function () {
+
                 if (!this.animations.videohtml5_animation) {
                     var animaVideoHtml5 = {anima_videohtml5: {
                             auto: true,
@@ -394,7 +335,6 @@ The complete set of contributors may be found at http://aylaweb.github.io/CONTRI
                         }};
                     this.anima = this.anima || {};
                     this.set('anima', animaVideoHtml5);
-                  //  this._alreadyAnima = true;
                 }
             },
             detached: function () {
@@ -514,8 +454,8 @@ The complete set of contributors may be found at http://aylaweb.github.io/CONTRI
                 this._draw();
             },
             _initMedia: function () {
-                this.startTime = this.$.videoSelector.selected.startTime || this.startTime;
-                this.endTime = this.$.videoSelector.selected.endTime || this._media.duration;
+                this.startTime = this.startTime || this.video.startTime || 0;
+                this.endTime = (this.video.endTime) ? this.video.endTime : this._media.duration;
                 this.duration = this.endTime - this.startTime;
             },
             // Action that starts playing the video
@@ -575,6 +515,9 @@ The complete set of contributors may be found at http://aylaweb.github.io/CONTRI
                     this._media.currentTime = time + this.startTime;
                 }
             },
+            getCurrentTime: function () {
+                return(this._media.currentTime);
+            },
             _newCurrentTimeChanged: function (val, old) {
                 if (val >= 0) {
                     this.setCurrentTime(val);
@@ -619,7 +562,7 @@ The complete set of contributors may be found at http://aylaweb.github.io/CONTRI
             _currentTimeChanged: function (val, old) {
 
                 if (val !== undefined) {
-                    if ((old === undefined) || (Math.abs(val - old) > 0.5)) {
+                    if ((old === undefined) || (Math.abs(val - old) > 1)) {
                         this.currentTimeNotify = this.currentTimeNotify + 1;
                     }
                 }

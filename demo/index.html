@@ -1,36 +1,51 @@
 <!doctype html>
 <html lang="en">
-    <head>
+<head>
 
-        <meta charset="UTF-8">
-        <title>Video html5</title>
-
-
-        <script src="../../webcomponentsjs/webcomponents-lite.min.js"></script>
-        <link rel="import" href="../../polymer/polymer.html">
-        <link rel="import" href="../vip-video-html5.html">
-        <style>
-            #video{
-                flex: 1 1 0;
-                position: relative;
-
-            }
-        </style>
-    </head>
-    <body fullbleed style="height:100vh; width:100vw; display: flex; flex-flow:row wrap; align-content: flex-start;">
-
-    <vip-video-html5 start-time="5" end-time="30" id="video" autoplay sources='[{"src": "http://localhost/Vipsion/public/ayla/media/joomla.mp4","type": "video/mp4"}]'>
-    </vip-video-html5>
-    <script>
-        var vhtml5 = document.querySelector('#video');
-        /* vhtml5.sources = [
-         {"src": "http://media.w3.org/2010/05/sintel/trailer.mp4",
-         "type": "video/mp4"
-         }]; */
-        /*   vhtml5.addEventListener("canplay", function ()
-         {
-         vhtml5.play();
-         });*/
-    </script>
+    <meta charset="UTF-8">
+    <title>Demo Video html5</title>
+    <script src="../../webcomponentsjs/webcomponents-lite.min.js"></script>
+    <link rel="import" href="../../polymer/polymer.html">
+    <link rel="import" href="../../vip-polymer/vip-polymer.html">
+    <link rel="import" href="../../vip-app/vip-app.html">
+    <style>
+        body {
+            display: flex;
+        // align-items: stretch;
+            margin: 0;
+            height: 100vh;
+            font-family: Roboto, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+    </style>
+    <!-- <link rel="import" href="http://localhost/Vipsion/public/bower_components/vip-loader/vip-loader.html"> -->
+</head>
+<body>
+<!-- <vip-polymer></vip-polymer> -->
+<vip-app id="video-demo"></vip-app>
+<script>
+    window.addEventListener('HTMLImportsLoaded', function (e) {
+        var videoDemo = document.querySelector('#video-demo');
+        videoDemo.dataSourceJson = [{
+            prop: "appItems",
+            docs: [
+                {
+                    def: "http://localhost/Vipsion/public/bower_components/vip-video-html5/vip-video-html5.html",
+                    etype: "vip-video-html5",
+                    id: "videosintel",
+                    autoplay: true,
+                    video: {
+                        sources: [{
+                            "src": "http://localhost/Vipsion/public/apps/ayla/media/joomla.mp4",
+                            "type": "video/mp4"
+                        }],
+                        videoId: "sintel"
+                    }
+                }
+            ]
+        }];
+    })
+    // var vhtml5 = document.querySelector('#video');
+    // vhtml5.play();
+</script>
 </body>
 </html>

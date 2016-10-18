@@ -14,42 +14,44 @@ The complete set of contributors may be found at http://aylaweb.github.io/CONTRI
 <link rel="import" href="../vip-resize-sensor-behavior/vip-resize-sensor-behavior.html">
 <link rel="import" href="../vip-seektime-behavior/vip-seektime-behavior.html">
 <link rel="import" href="../vip-onoff-behavior/vip-onoff-behavior.html">
-<link rel="import" href="../vip-anima-behavior/vip-anima-behavior.html">
-<link rel="import" href="./animations/draw-video-animation.html">
-<link rel="import" href="../vip-animations/timeline-animation.html">
 
 <dom-module id="vip-video-html5">
     <style>
         /* Web Component Flex container */
-        :host{
+        :host {
             overflow: hidden;
             position: relative;
             @apply(--layout-vertical);
             @apply(--layout-flex);
-            //   @apply(--vip-video-html5);
+            @apply(--vip-video-html5);
         }
 
-        #container{
+        #container {
             position: relative;
-            //   @apply(--layout-flex);
-            //     @apply(--vip-video-html5-container);
+            @apply(--layout-vertical);
+            @apply(--layout-flex);
+            @apply(--vip-video-html5-container);
         }
 
-
-        #container_video{
+        #paper_material {
             position: relative;
+            @apply(--layout-fit);
         }
 
+        #container_video {
+            position: relative;
+            @apply(--layout-fit);
+
+        }
 
     </style>
     <template id="template_videohtml5">
         <div id="container">
-            <paper-material id="paper_material" elevation = 3>
+            <paper-material id="paper_material" elevation=3>
                 <div id="container_video">
-                    <video id="{{videoId}}" hidden controls$="{{controls}}"
-                           poster$="{{poster}}" loop$="{{loop}}"
-                           muted$="{{muted}}"
-                           autoplay$="{{autoplay}}" preload="auto"
+                    <video id$="video_{{video.videoId}}" controls$="[[controls]]"
+                           hidden poster$="[[poster]]" loop$="[[loop]]" muted$="[[muted]]"
+                           autoplay$="[[autoplay]]" preload$="[[auto]]"
                            on-loadedmetadata="_onloadedmetadataHandler"
                            on-timeupdate="_ontimeupdateHandler"
                            on-play="_onplayHandler"
@@ -61,525 +63,582 @@ The complete set of contributors may be found at http://aylaweb.github.io/CONTRI
                            on-stalled="_onstalledHandler"
                            on-durationchange="_ondurationchangeHandler"
                            on-volumechange="_onvolumechangeHandler">
-                           <template is="dom-repeat" items="{{sources}}" as="source">
+                        <template is="dom-repeat" items="{{video.sources}}" as="source">
                             <source src="{{source.src}}" type="{{source.type}}">
                         </template>
                     </video>
-                    <canvas id="canvas"></canvas> 
+                    <canvas id="canvas"></canvas>
                 </div>
             </paper-material>
         </div>
         <content select="*"></content>
     </template>
     <script>
-        Polymer({
-            is: 'vip-video-html5',
-            properties: {
-                ended: {
-                    type: Boolean,
-                    notify: true,
-                    value: false
-                },
-                /**
-                 * State property. Shows whether the player is reproducing the media
-                 * Note: if the player is buffering or waiting or in any other state that stops reproduction
-                 * the property will be false
-                 *
-                 * @attribute playing
-                 * @type boolean
-                 * @default false
-                 */
-                playing: {
-                    type: Boolean,
-                    notify: true,
-                    value: false
-                },
-                /**
-                 * State property. Shows whether the player is set to reproduce
-                 * HTML5 video event driven
-                 *
-                 * @attribute paused
-                 * @type boolean
-                 * @default true
-                 */
-                paused: {
-                    type: Boolean,
-                    notify: true
-                            //      value: true
-                },
-                /**
-                 * State property. Shows whether the player is muted
-                 * the property will be false
-                 *
-                 * @attribute muted
-                 * @type boolean
-                 * @default false
-                 */
-                muted: {
-                    type: Boolean,
-                    notify: true,
-                    value: false
-                },
-                /**
-                 * State property. Shows the volume of the player
-                 *
-                 * @attribute volume
-                 * @type float
-                 * @default false
-                 */
-                volume: {
-                    type: Number,
-                    notify: true,
-                    value: 1
-                },
-                /**
-                 * State property. Reflects the current time of the reproduction of the video.
-                 * State property
-                 * HTML5 video event driven
-                 *
-                 * @attribute currentTime
-                 * @type float
-                 * @default 0
-                 */
-                currentTime: {
-                    type: Number,
-                    notify: true,
-                    observer: '_currentTimeChanged'
-                },
-                newCurrentTime: {
-                    type: Number,
-                    notify: true,
-                    observer: '_newCurrentTimeChanged'
-                },
-                /**
-                 * Reflects an external change to the normal progress of the timeline of the video.
-                 * State property. Used to change currenttime externally.
-                 * _currenttimeChanged driven
-                 *
-                 * @attribute currentTimeNotify
-                 * @type float
-                 * @default 0
-                 */
-                currentTimeNotify: {
-                    type: Number,
-                    notify: true,
-                    value: 0
-                },
-                /**
-                 * Info Property. Reflects the duration of the video. It takes into account the values of
-                 * the properties starttime and endtime.
-                 * HTML5 video event driven
-                 *
-                 * @attribute duration
-                 * @type float
-                 * @default 0
-                 */
-                duration: {
-                    type: Number,
-                    notify: true,
-                    value: 0
-                },
-                /**
-                 * Config Property
-                 * Defines that the video will start over again, 
-                 * every time it is finished
-                 * Behaviour property
-                 * Direct value driven
-                 * HTML Template reactive
-                 *
-                 * @attribute loop
-                 * @type boolean
-                 * @default false
-                 */
-                loop: {
-                    type: Boolean
-                },
-                /**
-                 * Config Property
-                 * Specifies an image to be shown while the video is downloading, 
-                 * or until the user hits the play button
-                 * Visual property
-                 * Direct value driven
-                 * HTML Template reactive
-                 * 
-                 * @attribute poster
-                 * @type string
-                 * @default ''
-                 */
-                poster: {
-                    type: String
-                },
-                /**
-                 * Config Property
-                 * Specifies that the video will start playing as soon as it is ready
-                 *
-                 * @attribute autoplay
-                 * @type boolean
-                 * @default false
-                 */
-                autoplay: {
-                    type: Boolean
-                },
-                /**
-                 * Config Property
-                 * Specifies that video controls should be displayed (such as a 
-                 * play/pause button etc).
-                 * Behaviour property
-                 * Direct value driven
-                 * HTML Template reactive
-                 *
-                 * @attribute controls
-                 * @type boolean
-                 * @default false
-                 */
-                controls: {
-                    type: Boolean
-                },
-                /**
-                 * Config Property
-                 * Specifies if and how the author thinks the video should be loaded 
-                 * when the page loads
-                 *
-                 * @attribute preload
-                 * @type string
-                 * @default "auto"
-                 */
-                preload: {
-                    type: String,
-                    value: "metadata"
-                },
-                /**
-                 * Config Property
-                 * Specifies that the time that the video should start
-                 *
-                 * @attribute starttime
-                 * @type integer
-                 * @default 0
-                 */
-                startTime: {
-                    type: Number,
-                    value: 0
-                },
-                /**
-                 * Config Property
-                 * Specifies that the time that the video should end. The value 0
-                 * indicates that the endtime is set to the video duration
-                 *
-                 * @attribute endtime
-                 * @type integer
-                 * @default 0
-                 */
-                endTime: {
-                    type: Number,
-                    value: 0
-                },
-                /**
-                 * Config Property
-                 * Specifies the URL of the video file
-                 *
-                 * @attribute src
-                 * @type string
-                 * @default ''
-                 */
-                src: {
-                    type: String
-                },
-                sources: {
-                    type: Array
-                },
-                /*   controlTimeline: {
-                 type: String,
-                 notify: true
-                 }, */
-                /* controlOnOff: {
-                 type: String,
-                 notify: true
-                 } */
-            },
-            behaviors: [Ayla.VipAnimaBehavior, Ayla.VipResizeSensorBehavior,
-                Ayla.VipSeekTimeBehavior, Ayla.VipOnOffBehavior],
-            listeners: {
-                'resize': '_resizeHandler'
-            },
-            // DOM video object
+        (function () {
+            'use strict';
 
-            // Web animations player object
+            var behaviors = Symbol('behaviors');
 
-            //canvas position
+            class VipVideoHtml5 {
 
-            // Filter for canvas
-            // filter: null,
-            // Polymer element lifecycle
-
-            created: function () {
-                console.log(this.id + " -> vip-video-html5 -> Event created");
-                this._media = null;
-                this._alreadyAnima = false;
-                this.canvasX = 0;
-                this.canvasY = 0;
-            },
-            attached: function () {
-                console.log(this.id + " -> vip-video-html5 -> Event attached");
-                this._resizeHandler();
-            },
-            ready: function () {
-                console.log(this.id + " -> vip-video-html5 -> Event ready");
-                this.paused = true;
-                this.currentTimeNotify = 0;
-                this.ctx = this.$.canvas.getContext("2d");
-                this.async(this._innerRule.bind(this));
-                this.async(this._resizeHandler.bind(this));
-                if (!this._alreadyAnima) {
-                    var animaTimeline = {timeline: {
-                            name: 'timeline-animation',
-                            auto: true,
-                            node: this,
-                            timing: {duration: 20000000000}
-                        }};
-                    this.anima = this.anima || {};
-                    this.set('anima', animaTimeline);
-                    this._alreadyAnima = true;
+                get behaviors() {
+                    if (!this[behaviors]) {
+                        this[behaviors] = [Ayla.VipResizeSensorBehavior,
+                            Ayla.VipSeekTimeBehavior, Ayla.VipOnOffBehavior];
+                    }
+                    return this[behaviors];
                 }
 
-            },
-            _innerRule: function () {
-                /*   var ruleControlTimeline = {};
-                 ruleControlTimeline.when = "controlTimeline$.currentTimeNotify";
-                 ruleControlTimeline.then = "newCurrentTime";
-                 this.rules = this.rules || [];
-                 this.push('rules', ruleControlTimeline); */
-                var ruleControlOnOff = {};
-                ruleControlOnOff.when = "controlOnOff$.pressed";
-                ruleControlOnOff.do = "transducers.filter(x => x)";
-                ruleControlOnOff.then = "{this.togglePlay()}";
-                this.rules = this.rules || [];
-                this.push('rules', ruleControlOnOff);
-            },
-            detached: function () {
-                console.log(this.id + " -> vip-video-html5 -> Event detached");
-            },
-            _resizeHandler: function () {
-                Polymer.dom.flush();
-                var height = this.$.container.offsetHeight;
-                var width = height * (16 / 9);
-                if (width < this.$.container.offsetWidth)
-                {
-                    this.$.canvas.height = height;
-                    this.$.canvas.width = width;
-                    this.$.paper_material.style.height = height + "px";
-                    this.$.paper_material.style.width = width + "px";
+                set behaviors(value) {
+                    this[behaviors] = value;
                 }
-                else {
-                    width = this.$.container.offsetWidth;
-                    height = width / (16 / 9);
-                    this.$.canvas.width = width;
-                    this.$.canvas.height = height;
-                    this.$.paper_material.style.width = width + "px";
-                    this.$.paper_material.style.height = height + "px";
-                }
-                //   this._draw();
-            },
-            load: function () {
-                this._media.load();
-            },
-            // Event Handlers
 
-            isDisabled: function (video) {
-                return video.disabled;
-            },
-            _ontimeupdateHandler: function (e) {
-                console.log(this.id + " -> Event timeupdate");
-                e.stopPropagation();
-                // video is playing
-                this.currentTime = this._media.currentTime - this.startTime;
-                if ((this.currentTime >= this.duration) && !this.ended) {
-                    this.pause();
+                beforeRegister() {
+
+                    this.is = 'vip-video-html5';
+                    this.properties = {
+                        ended: {
+                            type: Boolean,
+                            notify: true,
+                            value: false
+                        },
+                        /**
+                         * State property. Shows whether the player is reproducing the media
+                         * Note: if the player is buffering or waiting or in any other state that stops reproduction
+                         * the property will be false
+                         *
+                         * @attribute playing
+                         * @type boolean
+                         * @default false
+                         */
+                        playing: {
+                            type: Boolean,
+                            notify: true,
+                            value: false
+                        },
+                        /**
+                         * State property. Shows whether the player is set to reproduce
+                         * HTML5 video event driven
+                         *
+                         * @attribute paused
+                         * @type boolean
+                         * @default true
+                         */
+                        paused: {
+                            type: Boolean,
+                            notify: true
+                            // value: true
+                        },
+                        /**
+                         * State property. Shows whether the player is muted
+                         * the property will be false
+                         *
+                         * @attribute muted
+                         * @type boolean
+                         * @default false
+                         */
+                        muted: {
+                            type: Boolean,
+                            notify: true,
+                            value: false
+                        },
+                        /**
+                         * State property. Shows the volume of the player
+                         *
+                         * @attribute volume
+                         * @type float
+                         * @default false
+                         */
+                        volume: {
+                            type: Number,
+                            notify: true,
+                            value: 1
+                        },
+                        /**
+                         * State property. Reflects the current time of the reproduction of the video.
+                         * State property
+                         * HTML5 video event driven
+                         *
+                         * @attribute currentTime
+                         * @type float
+                         * @default 0
+                         */
+                        currentTime: {
+                            type: Number,
+                            notify: true,
+                            observer: '_currentTimeChanged'
+                        },
+                        newCurrentTime: {
+                            type: Number,
+                            notify: true,
+                            observer: '_newCurrentTimeChanged'
+                        },
+                        /**
+                         * Reflects an external change to the normal progress of the timeline of the video.
+                         * State property. Used to change currenttime externally.
+                         * _currenttimeChanged driven
+                         *
+                         * @attribute currentTimeNotify
+                         * @type float
+                         * @default 0
+                         */
+                        currentTimeNotify: {
+                            type: Number,
+                            notify: true,
+                            value: 0
+                        },
+                        /**
+                         * Info Property. Reflects the duration of the video. It takes into account the values of
+                         * the properties starttime and endtime.
+                         * HTML5 video event driven
+                         *
+                         * @attribute duration
+                         * @type float
+                         * @default 0
+                         */
+                        duration: {
+                            type: Number,
+                            notify: true,
+                            value: 0
+                        },
+                        /**
+                         * Config Property
+                         * Defines that the video will start over again,
+                         * every time it is finished
+                         * Behaviour property
+                         * Direct value driven
+                         * HTML Template reactive
+                         *
+                         * @attribute loop
+                         * @type boolean
+                         * @default false
+                         */
+                        loop: {
+                            type: Boolean
+                        },
+                        /**
+                         * Config Property
+                         * Specifies an image to be shown while the video is downloading,
+                         * or until the user hits the play button
+                         * Visual property
+                         * Direct value driven
+                         * HTML Template reactive
+                         *
+                         * @attribute poster
+                         * @type string
+                         * @default ''
+                         */
+                        poster: {
+                            type: String
+                        },
+                        /**
+                         * Config Property
+                         * Specifies that the video will start playing as soon as it is ready
+                         *
+                         * @attribute autoplay
+                         * @type boolean
+                         * @default false
+                         */
+                        autoplay: {
+                            type: Boolean
+                        },
+                        /**
+                         * Config Property
+                         * Specifies that video controls should be displayed (such as a
+                         * play/pause button etc).
+                         * Behaviour property
+                         * Direct value driven
+                         * HTML Template reactive
+                         *
+                         * @attribute controls
+                         * @type boolean
+                         * @default false
+                         */
+                        controls: {
+                            type: Boolean
+                        },
+                        /**
+                         * Config Property
+                         * Specifies if and how the author thinks the video should be loaded
+                         * when the page loads
+                         *
+                         * @attribute preload
+                         * @type string
+                         * @default "auto"
+                         */
+                        preload: {
+                            type: String,
+                            value: "metadata"
+                        },
+                        /**
+                         * Config Property
+                         * Specifies that the time that the video should start
+                         *
+                         * @attribute starttime
+                         * @type integer
+                         * @default 0
+                         */
+                        startTime: {
+                            type: Number,
+                            value: 0
+                        },
+                        /**
+                         * Config Property
+                         * Specifies that the time that the video should end. The value 0
+                         * indicates that the endtime is set to the video duration
+                         *
+                         * @attribute endtime
+                         * @type integer
+                         * @default 0
+                         */
+                        endTime: {
+                            type: Number,
+                            value: 0
+                        },
+                        video: {
+                            type: Object,
+                            notify: true,
+                            observer: '_videoInitChanged'
+                        }
+
+                    };
+                    this._media = null;
+                    this.canvasX = 0;
+                    this.canvasY = 0;
+                    this.listeners = {'resize': '_resizeHandler'};
+                }
+
+
+                // DOM video object
+
+                // Web animations player object
+
+                //canvas position
+
+                // Filter for canvas
+                // filter: null,
+                // Polymer element lifecycle
+
+                _videoInitChanged(val, old) {
+                    this.load();
+                    //   Polymer.dom.flush();
+                    //   this._media = Polymer.dom(this.root).querySelector('#' + this.$.videoSelector.selected.videoId);
+                }
+
+                attached() {
+                    console.log(this.id + " -> vip-video-html5 -> Event attached");
+                    this._resizeHandler();
+                }
+
+                ready() {
+                    console.log(this.id + " -> vip-video-html5 -> Event ready");
+                    //Animations from anima behaviors
+                    this.animations = this.animations || {};
+                    this.paused = true;
+                    this.currentTimeNotify = 0;
+                    this.ctx = this.$.canvas.getContext("2d");
+                    this.async(this._resizeHandler.bind(this), 1000);
+                    this.async(this._createAnimation.bind(this));
+                }
+
+
+                _createAnimation() {
+                    if (!this.animations.videohtml5_animation) {
+                        var animaVideoHtml5 = {
+                            anima_videohtml5: {
+                                auto: true,
+                                onOffSource: this.onOffSource,
+                                seekTimeSource: this.seekTimeSource,
+                                effect: ["KeyframeEffect", [null, [], {duration: 20000000000}], this._onsample.bind(this)],
+                            }
+                        };
+                        this.anima = this.anima || {};
+                        this.set('anima', animaVideoHtml5);
+                    }
+                }
+
+
+                detached() {
+                    console.log(this.id + " -> vip-video-html5 -> Event detached");
+                }
+
+
+                _onsample(timeFraction, target, animation) {
+                    if (timeFraction !== null) {
+                        this.__tick();
+                    }
+                }
+
+
+                _resizeHandler() {
+                    Polymer.dom.flush();
+                    var height = this.$.container.offsetHeight;
+                    var width = height * (16 / 9);
+                    if (width < this.$.container.offsetWidth) {
+                        this.$.canvas.height = height;
+                        this.$.canvas.width = width;
+                        this.$.paper_material.style.height = height + "px";
+                        this.$.paper_material.style.width = width + "px";
+                    }
+                    else {
+                        width = this.$.container.offsetWidth;
+                        height = width / (16 / 9);
+                        this.$.canvas.width = width;
+                        this.$.canvas.height = height;
+                        this.$.paper_material.style.width = width + "px";
+                        this.$.paper_material.style.height = height + "px";
+                    }
+                    //    this._draw();
+                }
+
+
+                load() {
+                    if (this._media)
+                        this._media.load();
+                }
+
+
+                // Event Handlers
+
+                isDisabled(video) {
+                    return video.disabled;
+                }
+
+
+                _ontimeupdateHandler(e) {
+                    console.log(this.id + " -> Event timeupdate");
+                    e.stopPropagation();
+                    // video is playing
+                    this.currentTime = this._media.currentTime - this.startTime;
+                    if ((this.currentTime >= this.duration) && !this.ended) {
+                        this.pause();
+                        this.ended = true;
+                        this.playing = false;
+                        this.setCurrentTime(0);
+                    }
+                    // _media is paused and time manually changed
+                    if (this.paused && this.currentTime < this.duration)
+                        this._draw();
+                }
+
+
+                _onendedHandler(e) {
+                    console.log(this.id + " -> Event ended");
+                    e.stopPropagation();
                     this.ended = true;
                     this.playing = false;
                     this.setCurrentTime(0);
                 }
-                // _media is paused and time manually changed          
-                if (this.paused && this.currentTime < this.duration)
-                    this._draw();
-            },
-            _onendedHandler: function (e) {
-                console.log(this.id + " -> Event ended");
-                e.stopPropagation();
-                this.ended = true;
-                this.playing = false;
-                this.setCurrentTime(0);
-            },
-            _onpauseHandler: function (e) {
-                console.log(this.id + " -> Event pause");
-                e.stopPropagation();
-                this.playing = false;
-                this.paused = true;
-            },
-            _onstalledHandler: function (e) {
-                console.log(this.id + " -> Event stalled");
-                e.stopPropagation();
-                this.playing = false;
-            },
-            _onplayHandler: function (e) {
-                console.log(this.id + " -> Event play");
-                e.stopPropagation();
-                this.playing = true;
-                this.paused = false;
-            },
-            _onplayingHandler: function (e) {
-                console.log(this.id + " -> Event playing");
-                e.stopPropagation();
-                this.playing = true;
-            },
-            _oncanplayHandler: function (e) {
-                console.log(this.id + " -> Event canplay");
-                e.stopPropagation();
-                this._draw();
-            },
-            _onwaitingHandler: function (e) {
-                console.log(this.id + " -> Event waiting");
-                e.stopPropagation();
-                this.playing = false;
-            },
-            _onvolumechangeHandler: function (e) {
-                console.log(this.id + " -> Event volumechange");
-                e.stopPropagation();
-                this.muted = this._media.muted;
-                this.currentVolume = this._media.volume;
 
-            },
-            _ondurationchangeHandler: function (e) {
-                console.log(this.id + " -> Event durationchange");
-                e.stopPropagation();
-                if (this._media) {
-                    if (!this.startTime)
-                        this.startTime = 0;
-                    this.endTime = (this.endTime) ? this.endTime : this._media.duration;
+
+                _onpauseHandler(e) {
+                    console.log(this.id + " -> Event pause");
+                    e.stopPropagation();
+                    this.playing = false;
+                    this.paused = true;
+                }
+
+
+                _onstalledHandler(e) {
+                    console.log(this.id + " -> Event stalled");
+                    e.stopPropagation();
+                    this.playing = false;
+                }
+
+
+                _onplayHandler(e) {
+                    console.log(this.id + " -> Event play");
+                    e.stopPropagation();
+                    this.playing = true;
+                    this.paused = false;
+                }
+
+
+                _onplayingHandler(e) {
+                    console.log(this.id + " -> Event playing");
+                    e.stopPropagation();
+                    this.playing = true;
+                }
+
+
+                _oncanplayHandler(e) {
+                    console.log(this.id + " -> Event canplay");
+                    e.stopPropagation();
+                    this._draw();
+                }
+
+
+                _onwaitingHandler(e) {
+                    console.log(this.id + " -> Event waiting");
+                    e.stopPropagation();
+                    this.playing = false;
+                }
+
+
+                _onvolumechangeHandler(e) {
+                    console.log(this.id + " -> Event volumechange");
+                    e.stopPropagation();
+                    this.muted = this._media.muted;
+                    this.currentVolume = this._media.volume;
+                }
+
+
+                _ondurationchangeHandler(e) {
+                    console.log(this.id + " -> Event durationchange");
+                    e.stopPropagation();
+                    if (this._media) {
+                        if (!this.startTime)
+                            this.startTime = 0;
+                        this.endTime = (this.endTime) ? this.endTime : this._media.duration;
+                        this.duration = this.endTime - this.startTime;
+                    }
+                }
+
+
+                _onloadedmetadataHandler(e) {
+                    console.log(this.id + " -> Event loadedmetadata");
+                    e.stopPropagation();
+                    Polymer.dom.flush();
+                    this._media = Polymer.dom(this.root).querySelector('video');
+                    this._initMedia();
+                    this._draw();
+                }
+
+
+                _initMedia() {
+                    this.startTime = this.startTime || this.video.startTime || 0;
+                    this.endTime = (this.video.endTime) ? this.video.endTime : this._media.duration;
                     this.duration = this.endTime - this.startTime;
                 }
-            },
-            _onloadedmetadataHandler: function (e) {
-                console.log(this.id + " -> Event loadedmetadata");
-                e.stopPropagation();
-                this._media = Polymer.dom(this.root).querySelector('video');
-                // this.animaVideo.play();
-                if (!this.startTime)
-                    this.startTime = 0;
-                this.endTime = (this.endTime) ? this.endTime : this._media.duration;
-                this.duration = this.endTime - this.startTime;
-                this._draw();
-            },
-            // Action that starts playing the video
-            play: function () {
-                if (this._media) {
-                    this._media.play();
-                }
-            },
-            // Action that pauses playing the video         
-            pause: function () {
-                if (this._media)
-                {
-                    this._media.pause();
-                }
-            },
-            end: function () {
-                if (this._media) {
-                    this._media.currentTime = this.endTime;
-                    if (this.endTime !== this._media.duration) {
-                        this.pause();
-                        this.ended = true;
-                    }
-                }
-            },
-            stop: function () {
-                if (this._media) {
-                    this._media.pause();
-                    this._media.currentTime = 0;
-                }
-            },
-            // Reaction that toggle the actions of play and pause        
-            togglePlay: function () {
-                if (this._media) {
-                    if (this.paused)
-                        this.play();
-                    else
-                        this.pause();
-                }
-            },
-            isMuted: function () {
-                return (this._media.mute);
-            },
-            newMuted: function (mute) {
-                this._media.mute = mute;
-            },
-            // Action that toggles the video muted state
-            toggleMute: function () {
-                if (this._media) {
-                    this._setMuted(!this._isMuted());
-                }
-            },
-            setVolume: function (volume) {
-                this._media.volume = volume;
-            },
-            setCurrentTime: function (time) {
-                if (this._media) {
-                    this._media.currentTime = time + this.startTime;
-                }
-            },
-            _newCurrentTimeChanged: function (val, old) {
-                if (val >= 0) {
-                    this.setCurrentTime(val);
-                }
-            },
-            _draw: function () {
-                if (this._media) {
-                    this.ctx.drawImage(this._media,
-                            this.canvasX, this.canvasY,
-                            this.$.canvas.width, this.$.canvas.height);
-                }
-            },
-            _filterChanged: function (old, val)
-            {
-                switch (val)
-                {
-                    case 'blackwhite':
-                        this.filterFunc = this._filterBW;
-                        break;
-                    default:
-                        this.filterFunc = this._filterDef;
-                }
-            },
-            _filterBW: function (data)
-            {
-                for (var i = 0; i < data.length; i += 4)
-                {
-                    var r = data[i],
-                            g = data[i + 1],
-                            b = data[i + 2],
-                            gray = (r + g + b) / 3;
-                    data[i] = gray;
-                    data[i + 1] = gray;
-                    data[i + 2] = gray;
-                }
-                return (data);
-            },
-            _filterDef: function (data)
-            {
-                return data;
-            },
-            _currentTimeChanged: function (val, old) {
 
-                if (val !== undefined) {
-                    if ((old === undefined) || (Math.abs(val - old) > 0.5)) {
-                        this.currentTimeNotify = this.currentTimeNotify + 1;
+
+                // Action that starts playing the video
+                play() {
+                    if (this._media) {
+                        this._media.play();
                     }
                 }
 
-            },
-            __tick: function () {
-                this._draw();
+                // Action that pauses playing the video
+                pause() {
+                    if (this._media) {
+                        this._media.pause();
+                    }
+                }
+
+                end() {
+                    if (this._media) {
+                        this._media.currentTime = this.endTime;
+                        if (this.endTime !== this._media.duration) {
+                            this.pause();
+                            this.ended = true;
+                        }
+                    }
+                }
+
+                stop() {
+                    if (this._media) {
+                        this._media.pause();
+                        this._media.currentTime = 0;
+                    }
+                }
+
+                // Reaction that toggle the actions of play and pause
+                togglePlay() {
+                    if (this._media) {
+                        if (this.paused)
+                            this.play();
+                        else
+                            this.pause();
+                    }
+                }
+
+                isMuted() {
+                    return (this._media.mute);
+                }
+
+                newMuted(mute) {
+                    this._media.mute = mute;
+                }
+
+                // Action that toggles the video muted state
+                toggleMute() {
+                    if (this._media) {
+                        this._setMuted(!this._isMuted());
+                    }
+                }
+
+                setVolume(volume) {
+                    this._media.volume = volume;
+                }
+
+                setCurrentTime(time) {
+                    if (this._media) {
+                        this._media.currentTime = time + this.startTime;
+                    }
+                }
+
+                getCurrentTime() {
+                    return (this._media.currentTime);
+                }
+
+                _newCurrentTimeChanged(val, old) {
+                    if (val >= 0) {
+                        this.setCurrentTime(val);
+                    }
+                }
+
+                _draw() {
+                    if (this._media) {
+                        this.ctx.drawImage(this._media,
+                                this.canvasX, this.canvasY,
+                                this.$.canvas.width, this.$.canvas.height);
+                    }
+                }
+
+                _filterChanged(old, val) {
+                    switch (val) {
+                        case 'blackwhite':
+                            this.filterFunc = this._filterBW;
+                            break;
+                        default:
+                            this.filterFunc = this._filterDef;
+                    }
+                }
+
+                _filterBW(data) {
+                    for (var i = 0; i < data.length; i += 4) {
+                        var r = data[i],
+                                g = data[i + 1],
+                                b = data[i + 2],
+                                gray = (r + g + b) / 3;
+                        data[i] = gray;
+                        data[i + 1] = gray;
+                        data[i + 2] = gray;
+                    }
+                    return (data);
+                }
+
+                _filterDef(data) {
+                    return data;
+                }
+
+                _currentTimeChanged(val, old) {
+
+                    if (val !== undefined) {
+                        if ((old === undefined) || (Math.abs(val - old) > 1)) {
+                            this.currentTimeNotify = this.currentTimeNotify + 1;
+                        }
+                    }
+
+                }
+
+                __tick() {
+                    this._draw();
+                }
+
             }
-
-        });
+            Polymer(VipVideoHtml5);
+        })();
     </script>
 </dom-module>
